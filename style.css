@@ -1,0 +1,119 @@
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
+            background: #1e2a38;
+            color: #eceff1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .app-container {
+            max-width: 400px;
+            width: 100%;
+            background: #2c3e50;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            padding: 2rem;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #4caf50;
+            margin-bottom: 1rem;
+        }
+        .screen {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #455a64;
+            border-radius: 5px;
+            font-size: 1rem;
+            background: #37474f;
+            color: #eceff1;
+        }
+        button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #388e3c;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .day {
+            padding: 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            background: #455a64;
+        }
+        .day.green {
+            background: #4caf50;
+            color: white;
+        }
+        .day.red {
+            background: #ff5252;
+            color: white;
+        }
+        .stats {
+            margin-bottom: 1rem;
+        }
+        .stats p {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        #clock {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        #quote {
+            font-size: 1.1rem;
+            font-style: italic;
+            margin-bottom: 1rem;
+            color: #4caf50;
+        }
+        .hidden {
+            display: none;
+        }
+        .popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .popup-content {
+            background: #2c3e50;
+            padding: 1.5rem;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+        }
+        .popup-content button {
+            margin: 0.5rem;
+        }
