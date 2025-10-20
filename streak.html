@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Streak Counter</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Streak Counter">
+    <meta name="theme-color" content="#1e2a38">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
+            background: #1e2a38;
+            color: #eceff1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .app-container {
+            max-width: 400px;
+            width: 100%;
+            background: #2c3e50;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            padding: 2rem;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #4caf50;
+            margin-bottom: 1rem;
+        }
+        .screen {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #455a64;
+            border-radius: 5px;
+            font-size: 1rem;
+            background: #37474f;
+            color: #eceff1;
+        }
+        button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #388e3c;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .day {
+            padding: 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            background: #455a64;
+        }
+        .day.green {
+            background: #4caf50;
+            color: white;
+        }
+        .day.red {
+            background: #ff5252;
+            color: white;
+        }
+        .stats {
+            margin-bottom: 1rem;
+        }
+        .stats p {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        #clock {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        #quote {
+            font-size: 1.1rem;
+            font-style: italic;
+            margin-bottom: 1rem;
+            color: #4caf50;
+        }
+        .hidden {
+            display: none;
+        }
+        .popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .popup-content {
+            background: #2c3e50;
+            padding: 1.5rem;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+        }
+        .popup-content button {
+            margin: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- PIN Screen -->
+        <div id="pin-screen" class="screen active">
+            <h1>Enter PIN</h1>
+            <input type="password" id="pin-input" placeholder="4-digit PIN" maxlength="4">
+            <button onclick="verifyPIN()">Enter</button>
+            <button onclick="showEditPIN()">Edit PIN</button>
+        </div>
+
+        <!-- Set PIN Screen (First Time) -->
+        <div id="set-pin-screen" class="screen">
+            <h1>Set PIN</h1>
+            <input type="password" id="new-pin" placeholder="4-digit PIN" maxlength="4">
+            <button onclick="setPIN()">Save</button>
+        </div>
+
+        <!-- Edit PIN Screen -->
+        <div id="edit-pin-screen" class="screen">
+            <h1>Edit PIN</h1>
+            <input type="password" id="old-pin" placeholder="Old PIN" maxlength="4">
+            <button onclick="verifyOldPIN()">Verify Old PIN</button>
+        </div>
+
+        <!-- New PIN Screen -->
+        <div id="new-pin-screen" class="screen">
+            <h1>Enter New PIN</h1>
+            <input type="password" id="new-edit-pin" placeholder="New PIN" maxlength="4">
+            <button onclick="updatePIN()">Update</button>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="screen">
+            <h1>Streak Counter</h1>
+            <div id="quote"></div>
+            <div id="clock"></div>
+            <select id="streak-select" onchange="loadStreak()">
+                <option value="">Select Streak</option>
+            </select>
+            <button onclick="addNewStreak()">Add New Streak</button>
+            <div class="calendar" id="calendar"></div>
+            <div class="stats hidden" id="streak-stats">
+                <p>Current Streak: <span id="current-streak">0</span></p>
+                <p>Longest Streak: <span id="longest-streak">0</span></p>
+            </div>
+            <button class="hidden" id="reset-btn" onclick="resetStreak()">Reset Streak</button>
+        </div>
+    </div>
+
+    <script>
+        let db;
+        const dbName = "StreakDB";
+        const dbVersion = 1;
+
+        // Motivational quotes
+        const quotes = [
+            "Keep pushing forward, one day at a time!",
+            "Every streak starts with a single step.",
+            "Consistency is the key to success!",
+            "Small actions daily lead to big results.",
+            "Stay committed, your streak will shine!"
+        ];
+
+        // Initialize IndexedDB
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains('pin')) {
+                db.createObjectStore('pin', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('streaks')) {
+                db.createObjectStore('streaks', { keyPath: 'name' });
+            }
+        };
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            checkPIN();
+        };
+        request.onerror = (event) => {
+            console.error("IndexedDB error:", event.target.errorCode);
+        };
+
+        // Check if PIN is set
+        function checkPIN() {
+            const transaction = db.transaction(['pin'], 'readonly');
+            const store = transaction.objectStore('pin');
+            const getPIN = store.get(1);
+            getPIN.onsuccess = () => {
+                if (getPIN.result) {
+                    showScreen('pin-screen');
+                } else {
+                    showScreen('set-pin-screen');
+                }
+            };
+        }
+
+        // Verify PIN
+        function verifyPIN() {
+            const pin = document.getElementById('pin-input').value;
+            if (!/^\d{4}$/.test(pin)) {
+                alert('PIN must be a 4-digit number');
+                return;
+            }
+            const transaction = db.transaction(['pin'], 'readonly');
+            const store = transaction.objectStore('pin');
+            const getPIN = store.get(1);
+            getPIN.onsuccess = () => {
+                if (getPIN.result && getPIN.result.value === pin) {
+                    showScreen('dashboard-screen');
+                    loadStreaks();
+                    showDefaultCalendar();
+                    showQuote();
+                    updateClock();
+                } else {
+                    alert('Invalid PIN');
+                }
+                document.getElementById('pin-input').value = '';
+            };
+        }
+
+        // Set PIN (first time only)
+        function setPIN() {
+            const pin = document.getElementById('new-pin').value;
+            if (!/^\d{4}$/.test(pin)) {
+                alert('PIN must be a 4-digit number');
+                return;
+            }
+            const transaction = db.transaction(['pin'], 'readwrite');
+            const store = transaction.objectStore('pin');
+            store.put({ id: 1, value: pin });
+            transaction.oncomplete = () => {
+                alert('PIN set successfully');
+                showScreen('pin-screen');
+            };
+            document.getElementById('new-pin').value = '';
+        }
+
+        // Verify old PIN for editing
+        function verifyOldPIN() {
+            const oldPin = document.getElementById('old-pin').value;
+            if (!/^\d{4}$/.test(oldPin)) {
+                alert('PIN must be a 4-digit number');
+                return;
+            }
+            const transaction = db.transaction(['pin'], 'readonly');
+            const store = transaction.objectStore('pin');
+            const getPIN = store.get(1);
+            getPIN.onsuccess = () => {
+                if (getPIN.result && getPIN.result.value === oldPin) {
+                    showScreen('new-pin-screen');
+                } else {
+                    alert('Old PIN is incorrect');
+                    document.getElementById('old-pin').value = '';
+                }
+            };
+        }
+
+        // Update PIN
+        function updatePIN() {
+            const newPin = document.getElementById('new-edit-pin').value;
+            if (!/^\d{4}$/.test(newPin)) {
+                alert('PIN must be a 4-digit number');
+                return;
+            }
+            const transaction = db.transaction(['pin'], 'readwrite');
+            const store = transaction.objectStore('pin');
+            store.put({ id: 1, value: newPin });
+            transaction.oncomplete = () => {
+                alert('PIN updated successfully');
+                showScreen('pin-screen');
+            };
+            document.getElementById('new-edit-pin').value = '';
+        }
+
+        // Show screen
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // Show edit PIN screen
+        function showEditPIN() { showScreen('edit-pin-screen'); }
+
+        // Load streak names
+        function loadStreaks() {
+            const select = document.getElementById('streak-select');
+            select.innerHTML = '<option value="">Select Streak</option>';
+            const transaction = db.transaction(['streaks'], 'readonly');
+            const store = transaction.objectStore('streaks');
+            store.openCursor().onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const option = document.createElement('option');
+                    option.value = cursor.value.name;
+                    option.textContent = cursor.value.name;
+                    select.appendChild(option);
+                    cursor.continue();
+                }
+            };
+        }
+
+        // Add new streak
+        function addNewStreak() {
+            const name = prompt('Enter streak name:');
+            if (name) {
+                const transaction = db.transaction(['streaks'], 'readwrite');
+                const store = transaction.objectStore('streaks');
+                store.add({ name, data: {} });
+                transaction.oncomplete = () => {
+                    loadStreaks();
+                    document.getElementById('streak-select').value = name;
+                    loadStreak();
+                };
+            }
+        }
+
+        // Load selected streak
+        function loadStreak() {
+            const select = document.getElementById('streak-select');
+            const streakName = select.value;
+            const stats = document.getElementById('streak-stats');
+            const resetBtn = document.getElementById('reset-btn');
+            const quote = document.getElementById('quote');
+            if (streakName) {
+                stats.classList.remove('hidden');
+                resetBtn.classList.remove('hidden');
+                quote.classList.add('hidden');
+                const transaction = db.transaction(['streaks'], 'readwrite');
+                const store = transaction.objectStore('streaks');
+                const getStreak = store.get(streakName);
+                getStreak.onsuccess = () => {
+                    const streakData = getStreak.result.data;
+                    generateCalendar(streakData, streakName, true);
+                    calculateStats(streakData);
+                };
+            } else {
+                stats.classList.add('hidden');
+                resetBtn.classList.add('hidden');
+                quote.classList.remove('hidden');
+                showQuote();
+                generateCalendar({}, null, false);
+            }
+        }
+
+        // Generate calendar
+        function generateCalendar(streakData, streakName, interactive) {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay();
+
+            // Weekdays
+            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+                const div = document.createElement('div');
+                div.textContent = day;
+                div.classList.add('day', 'header');
+                calendar.appendChild(div);
+            });
+
+            // Empty days
+            for (let i = 0; i < firstDay; i++) {
+                calendar.appendChild(document.createElement('div'));
+            }
+
+            // Days
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const div = document.createElement('div');
+                div.textContent = i;
+                div.classList.add('day');
+                div.dataset.date = dateStr;
+                if (streakData[dateStr]) {
+                    div.classList.add(streakData[dateStr]);
+                }
+                if (interactive) {
+                    div.onclick = () => showStreakPopup(dateStr, streakName, streakData[dateStr] || 'none');
+                }
+                calendar.appendChild(div);
+            }
+        }
+
+        // Show streak popup
+        function showStreakPopup(date, streakName, currentState) {
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            const content = document.createElement('div');
+            content.className = 'popup-content';
+            content.innerHTML = `<h3>Mark Streak for ${date}</h3>`;
+            const addBtn = document.createElement('button');
+            addBtn.textContent = currentState === 'green' ? 'Change to Skip' : 'Add Streak';
+            addBtn.onclick = () => {
+                updateStreak(date, streakName, currentState === 'green' ? 'red' : 'green');
+                popup.remove();
+            };
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = currentState !== 'none' ? 'Remove' : 'Skip';
+            removeBtn.onclick = () => {
+                if (currentState !== 'none') {
+                    updateStreak(date, streakName, 'none');
+                } else {
+                    updateStreak(date, streakName, 'red');
+                }
+                popup.remove();
+            };
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = () => popup.remove();
+            content.appendChild(addBtn);
+            content.appendChild(removeBtn);
+            content.appendChild(cancelBtn);
+            popup.appendChild(content);
+            document.body.appendChild(popup);
+        }
+
+        // Update streak
+        function updateStreak(date, streakName, state) {
+            const transaction = db.transaction(['streaks'], 'readwrite');
+            const store = transaction.objectStore('streaks');
+            const getStreak = store.get(streakName);
+            getStreak.onsuccess = () => {
+                const streakData = getStreak.result.data;
+                if (state === 'none') {
+                    delete streakData[date];
+                } else {
+                    streakData[date] = state;
+                }
+                store.put(getStreak.result);
+                transaction.oncomplete = () => {
+                    loadStreak();
+                };
+            };
+        }
+
+        // Calculate stats
+        function calculateStats(streakData) {
+            let currentStreak = 0;
+            let longestStreak = 0;
+            let tempStreak = 0;
+            const dates = Object.keys(streakData).sort();
+            let prevDate = null;
+            dates.forEach(date => {
+                if (streakData[date] === 'green') {
+                    if (prevDate && (new Date(date) - new Date(prevDate)) / (1000 * 60 * 60 * 24) === 1) {
+                        tempStreak++;
+                    } else {
+                        tempStreak = 1;
+                    }
+                    currentStreak = tempStreak;
+                    longestStreak = Math.max(longestStreak, currentStreak);
+                    prevDate = date;
+                } else {
+                    tempStreak = 0;
+                }
+            });
+            document.getElementById('current-streak').textContent = currentStreak;
+            document.getElementById('longest-streak').textContent = longestStreak;
+        }
+
+        // Reset streak
+        function resetStreak() {
+            const select = document.getElementById('streak-select');
+            const streakName = select.value;
+            if (streakName && confirm(`Reset ${streakName}?`)) {
+                const transaction = db.transaction(['streaks'], 'readwrite');
+                const store = transaction.objectStore('streaks');
+                const getStreak = store.get(streakName);
+                getStreak.onsuccess = () => {
+                    getStreak.result.data = {};
+                    store.put(getStreak.result);
+                    transaction.oncomplete = () => {
+                        loadStreak();
+                    };
+                };
+            }
+        }
+
+        // Show default calendar
+        function showDefaultCalendar() {
+            generateCalendar({}, null, false);
+        }
+
+        // Update clock
+        function updateClock() {
+            const clock = document.getElementById('clock');
+            clock.textContent = new Date().toLocaleString();
+            setTimeout(updateClock, 1000);
+        }
+
+        // Show random motivational quote
+        function showQuote() {
+            const quote = document.getElementById('quote');
+            quote.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+        }
+
+        // Initial load
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.error('Service Worker error:', err));
+        }
+    </script>
+</body>
+</html>
