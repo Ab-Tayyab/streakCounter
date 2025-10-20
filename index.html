@@ -1,18 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Streak Counter</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/streakCounter/manifest.json">
+    <meta name="theme-color" content="#1e2a38">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- iOS Support -->
+    <link rel="apple-touch-icon" href="/streakCounter/192.png">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Streak Counter">
-    <meta name="theme-color" content="#1e2a38">
+
+    <!-- Fonts and Styles -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
+
 <body>
     <div class="app-container">
         <!-- PIN Screen -->
@@ -61,27 +70,18 @@
             <button class="hidden" id="reset-btn" onclick="resetStreak()">Reset Streak</button>
         </div>
     </div>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/streakCounter/service-worker.js')
-    .then(reg => {
-      console.log('✅ Service Worker registered:', reg);
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/streakCounter/service-worker.js')
+                .then(() => console.log('✅ Service Worker registered'))
+                .catch(err => console.log('❌ Service Worker failed:', err));
+        }
+    </script>
 
-      reg.onupdatefound = () => {
-        const newWorker = reg.installing;
-        newWorker.onstatechange = () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('🔄 New version detected, reloading...');
-            window.location.reload();
-          }
-        };
-      };
-    })
-    .catch(err => console.error('❌ Service Worker registration failed:', err));
-}
-</script>
 
-  
+
+
     <script src="script.js"></script>
 </body>
+
 </html>
