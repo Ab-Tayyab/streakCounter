@@ -63,11 +63,17 @@
             </select>
             <button onclick="addNewStreak()">Add New Streak</button>
             <div class="calendar" id="calendar"></div>
-            <div class="stats hidden" id="streak-stats">
-                <p>Current Streak: <span id="current-streak">0</span></p>
-                <p>Longest Streak: <span id="longest-streak">0</span></p>
+            <div id="streak-stats" class="stats hidden">
+                <div class="stats-box">
+                    <p>Current Streak</p>
+                    <span id="current-streak">0</span>
+                </div>
+                <div class="stats-box">
+                    <p>Longest Streak</p>
+                    <span id="longest-streak">0</span>
+                </div>
             </div>
-            <button class="hidden" id="reset-btn" onclick="resetStreak()">Reset Streak</button>
+
         </div>
     </div>
     <script>
