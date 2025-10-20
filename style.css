@@ -1,6 +1,4 @@
-/* =========================
-   Base Styles
-========================= */
+/* ===== Global Styles ===== */
 * {
   margin: 0;
   padding: 0;
@@ -16,61 +14,55 @@ body {
   align-items: center;
   min-height: 100vh;
   padding: 1rem;
+  overflow-x: hidden;
 }
 
-/* =========================
-   App Container
-========================= */
+/* ===== Main App Container ===== */
 .app-container {
   width: 100%;
   max-width: 400px;
   background: #2c3e50;
-  border-radius: 20px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   padding: 2rem;
   text-align: center;
   transition: all 0.3s ease;
 }
 
+/* ===== Headings ===== */
 h1 {
   font-size: 2rem;
   color: #4caf50;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
 }
 
-/* =========================
-   Screens
-========================= */
+/* ===== Screen Handling ===== */
 .screen {
   display: none;
 }
-
 .active {
   display: block;
 }
 
-/* =========================
-   Form Elements
-========================= */
+/* ===== Inputs, Selects, Buttons ===== */
 input,
 select,
 button {
   width: 100%;
-  padding: 0.8rem;
+  padding: 0.75rem;
   margin-bottom: 1rem;
   border: 1px solid #455a64;
   border-radius: 8px;
   font-size: 1rem;
   background: #37474f;
   color: #eceff1;
-  transition: 0.3s;
+  transition: all 0.3s ease;
 }
 
 input:focus,
 select:focus {
   outline: none;
   border-color: #4caf50;
-  background: #455a64;
 }
 
 button {
@@ -79,113 +71,109 @@ button {
   border: none;
   cursor: pointer;
   font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: background 0.3s;
+  border-radius: 8px;
 }
 
 button:hover {
   background: #388e3c;
-  transform: scale(1.02);
 }
 
-/* =========================
-   Calendar Grid
-========================= */
+/* ===== Calendar Grid ===== */
 .calendar {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
   gap: 0.4rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
 }
 
 .day {
-  padding: 0.6rem;
-  border-radius: 8px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
   cursor: pointer;
   text-align: center;
   background: #455a64;
-  transition: 0.3s;
   font-size: 0.9rem;
+  user-select: none;
+  transition: background 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .day.green {
   background: #4caf50;
   color: white;
 }
-
 .day.red {
   background: #ff5252;
   color: white;
 }
 
-.day:hover {
-  transform: scale(1.05);
-}
-
-/* =========================
-   Stats Section
-========================= */
+/* ===== Stats Section ===== */
 .stats {
-  margin-bottom: 1.2rem;
+  margin-bottom: 1rem;
 }
-
 .stats p {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   margin-bottom: 0.4rem;
 }
 
-/* =========================
-   Clock & Quote
-========================= */
+/* ===== Clock and Quote ===== */
 #clock {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
 }
-
 #quote {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-style: italic;
   margin-bottom: 1rem;
   color: #81c784;
 }
 
-/* =========================
-   Popup Styles
-========================= */
+/* ===== Popup Modal ===== */
 .hidden {
   display: none;
 }
-
 .popup {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 100;
 }
-
 .popup-content {
   background: #2c3e50;
   padding: 1.5rem;
-  border-radius: 12px;
-  width: 85%;
-  max-width: 320px;
+  border-radius: 10px;
+  width: 80%;
+  max-width: 300px;
   text-align: center;
 }
-
 .popup-content button {
-  margin: 0.4rem;
+  margin: 0.5rem;
 }
 
-/* =========================
-   Responsive Design
-========================= */
-
-/* Small devices (phones) */
+/* ===== Responsive Design ===== */
 @media (max-width: 480px) {
+  body {
+    padding: 0.5rem;
+  }
+
   .app-container {
     padding: 1.5rem;
-    border-radius: 15px;
+    border-radius: 12px;
+    width: 95%;
   }
 
   h1 {
@@ -195,35 +183,40 @@ button:hover {
   input,
   select,
   button {
-    padding: 0.7rem;
     font-size: 0.95rem;
+    padding: 0.65rem;
   }
 
   .calendar {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.35rem;
+    grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
+    gap: 0.3rem;
   }
 
   .day {
-    padding: 0.5rem;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 
   #clock {
-    font-size: 1.05rem;
+    font-size: 1rem;
   }
 
   #quote {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 }
 
-/* Very small screens */
-@media (max-width: 360px) {
-  .calendar {
-    grid-template-columns: repeat(4, 1fr);
+/* ===== Tablets ===== */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app-container {
+    max-width: 600px;
+    padding: 2.5rem;
   }
-  .day {
-    padding: 0.45rem;
+
+  h1 {
+    font-size: 2.2rem;
+  }
+
+  .calendar {
+    grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
   }
 }
