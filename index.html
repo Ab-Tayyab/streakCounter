@@ -73,16 +73,33 @@
                     <span id="longest-streak">0</span>
                 </div>
             </div>
+            <!-- Logout Button -->
+            <button id="logout-btn" onclick="logout()">Logout</button>
+
 
         </div>
     </div>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/streakCounter/service-worker.js')
-                .then(() => console.log('✅ Service Worker registered'))
-                .catch(err => console.log('❌ Service Worker failed:', err));
+                .then(reg => {
+                    if (reg.waiting) {
+                        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
+
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('🔄 New update found — reloading...');
+                                window.location.reload();
+                            }
+                        });
+                    });
+                });
         }
     </script>
+
 
 
 
