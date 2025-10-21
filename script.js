@@ -24,9 +24,10 @@ const DOM = {
     calendar: document.getElementById('calendar')
 };
 
-// Initialize IndexedDB
+// ====================== IndexedDB Initialization ======================
 function initDB() {
     const request = indexedDB.open(dbName, dbVersion);
+
     request.onupgradeneeded = ({ target }) => {
         db = target.result;
         if (!db.objectStoreNames.contains('pin')) {
@@ -36,36 +37,41 @@ function initDB() {
             db.createObjectStore('streaks', { keyPath: 'name' });
         }
     };
+
     request.onsuccess = ({ target }) => {
         db = target.result;
-        checkLoginState();
+        console.log("IndexedDB initialized ✅");
+        checkLoginState(); // Call only after DB ready
     };
-    request.onerror = ({ target }) => console.error('IndexedDB error:', target.errorCode);
+
+    request.onerror = ({ target }) => {
+        console.error('IndexedDB error:', target.errorCode);
+        alert("Database initialization failed. Please reload the page.");
+    };
 }
 
-// Check Login State
+// ====================== Login Handling ======================
 function checkLoginState() {
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    if (isLoggedIn) {
-        const tx = db.transaction(['pin'], 'readonly');
-        const store = tx.objectStore('pin');
-        store.get(1).onsuccess = ({ target }) => {
-            if (target.result) {
-                showScreen('dashboard-screen');
-                loadStreaks();
-                showDefaultCalendar();
-                showQuote();
-                updateClock();
-            } else {
-                showScreen('set-pin-screen');
-            }
-        };
-    } else {
-        checkPIN();
-    }
+    const tx = db.transaction(['pin'], 'readonly');
+    const store = tx.objectStore('pin');
+
+    store.get(1).onsuccess = ({ target }) => {
+        const hasPin = !!target.result;
+        if (isLoggedIn && hasPin) {
+            showScreen('dashboard-screen');
+            loadStreaks();
+            showDefaultCalendar();
+            showQuote();
+            updateClock();
+        } else if (hasPin) {
+            showScreen('pin-screen');
+        } else {
+            showScreen('set-pin-screen');
+        }
+    };
 }
 
-// PIN Handling
 function validatePIN(pin) {
     return /^\d{4}$/.test(pin?.trim());
 }
@@ -80,10 +86,8 @@ function checkPIN() {
 
 function verifyPIN() {
     const pin = DOM.pinInput.value;
-    if (!validatePIN(pin)) {
-        alert('PIN must be a 4-digit number');
-        return;
-    }
+    if (!validatePIN(pin)) return alert('PIN must be a 4-digit number');
+
     const tx = db.transaction(['pin'], 'readonly');
     const store = tx.objectStore('pin');
     store.get(1).onsuccess = ({ target }) => {
@@ -103,13 +107,12 @@ function verifyPIN() {
 
 function setPIN() {
     const pin = DOM.newPin.value;
-    if (!validatePIN(pin)) {
-        alert('PIN must be a 4-digit number');
-        return;
-    }
+    if (!validatePIN(pin)) return alert('PIN must be a 4-digit number');
+
     const tx = db.transaction(['pin'], 'readwrite');
     const store = tx.objectStore('pin');
     store.put({ id: 1, value: pin });
+
     tx.oncomplete = () => {
         alert('PIN set successfully');
         showScreen('pin-screen');
@@ -119,10 +122,8 @@ function setPIN() {
 
 function verifyOldPIN() {
     const oldPin = DOM.oldPin.value;
-    if (!validatePIN(oldPin)) {
-        alert('PIN must be a 4-digit number');
-        return;
-    }
+    if (!validatePIN(oldPin)) return alert('PIN must be a 4-digit number');
+
     const tx = db.transaction(['pin'], 'readonly');
     const store = tx.objectStore('pin');
     store.get(1).onsuccess = ({ target }) => {
@@ -135,20 +136,19 @@ function verifyOldPIN() {
         }
     };
 }
-// Show Edit PIN Screen
+
 function showEditPIN() {
     showScreen('edit-pin-screen');
 }
 
 function updatePIN() {
     const newPin = DOM.newEditPin.value;
-    if (!validatePIN(newPin)) {
-        alert('PIN must be a 4-digit number');
-        return;
-    }
+    if (!validatePIN(newPin)) return alert('PIN must be a 4-digit number');
+
     const tx = db.transaction(['pin'], 'readwrite');
     const store = tx.objectStore('pin');
     store.put({ id: 1, value: newPin });
+
     tx.oncomplete = () => {
         alert('PIN updated successfully');
         showScreen('pin-screen');
@@ -156,19 +156,19 @@ function updatePIN() {
     };
 }
 
-// Logout
 function logout() {
     localStorage.removeItem('isLoggedIn');
-    clearInterval(clockInterval);
+    clearTimeout(clockInterval);
     showScreen('pin-screen');
     DOM.pinInput.value = '';
 }
 
-// Streak Management
+// ====================== Streak Management ======================
 function loadStreaks() {
     DOM.streakSelect.innerHTML = '<option value="">Select Streak</option>';
     const tx = db.transaction(['streaks'], 'readonly');
     const store = tx.objectStore('streaks');
+
     store.openCursor().onsuccess = ({ target }) => {
         const cursor = target.result;
         if (cursor) {
@@ -184,8 +184,10 @@ function loadStreaks() {
 function addNewStreak() {
     const name = prompt('Enter streak name:')?.trim();
     if (!name) return;
+
     const tx = db.transaction(['streaks'], 'readwrite');
     const store = tx.objectStore('streaks');
+
     store.get(name).onsuccess = ({ target }) => {
         if (target.result) {
             alert('Streak with this name already exists!');
@@ -202,11 +204,9 @@ function addNewStreak() {
 
 function deleteCurrentStreak() {
     const streakName = DOM.streakSelect.value;
-    if (!streakName) {
-        alert('Please select a streak to delete');
-        return;
-    }
+    if (!streakName) return alert('Please select a streak to delete');
     if (!confirm(`Are you sure you want to delete "${streakName}"?`)) return;
+
     const tx = db.transaction(['streaks'], 'readwrite');
     const store = tx.objectStore('streaks');
     store.delete(streakName);
@@ -221,6 +221,7 @@ function deleteCurrentStreak() {
 
 function loadStreak() {
     const streakName = DOM.streakSelect.value;
+
     if (streakName) {
         DOM.streakStats.classList.remove('hidden');
         DOM.quote.classList.add('hidden');
@@ -232,14 +233,17 @@ function loadStreak() {
             calculateStats(streakData);
         };
     } else {
+        // Reset everything when "None" is selected
         DOM.streakStats.classList.add('hidden');
         DOM.quote.classList.remove('hidden');
         showQuote();
         generateCalendar({}, null, false);
+        document.getElementById('current-streak').textContent = 0;
+        document.getElementById('longest-streak').textContent = 0;
     }
 }
 
-// Calendar
+// ====================== Calendar ======================
 function generateCalendar(streakData = {}, streakName = null, interactive = false) {
     DOM.calendar.innerHTML = '';
     const now = new Date();
@@ -247,26 +251,31 @@ function generateCalendar(streakData = {}, streakName = null, interactive = fals
     const month = now.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const fragment = document.createDocumentFragment();
+
     for (let day = 1; day <= daysInMonth; day++) {
         const d = new Date(year, month, day);
         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
         const cell = document.createElement('div');
         cell.classList.add('day');
         cell.dataset.date = dateStr;
         cell.innerHTML = `<div class="day-num">${day}</div><div class="day-label">${dayName}</div>`;
+
         if (streakData[dateStr]) {
             cell.classList.add(streakData[dateStr]);
         }
+
         if (interactive && streakName) {
             cell.addEventListener('click', () => showStreakPopup(dateStr, streakName, streakData[dateStr] || 'none'));
         }
+
         fragment.appendChild(cell);
     }
     DOM.calendar.appendChild(fragment);
 }
 
-// Streak Popup
+// ====================== Streak Popup ======================
 function showStreakPopup(dateStr, streakName, currentState) {
     document.querySelector('.popup')?.remove();
     const popup = document.createElement('div');
@@ -274,24 +283,26 @@ function showStreakPopup(dateStr, streakName, currentState) {
     const content = document.createElement('div');
     content.className = 'popup-content';
     content.innerHTML = `<h3>${dateStr}</h3>`;
+
     const doneBtn = document.createElement('button');
     doneBtn.textContent = currentState === 'green' ? 'Mark Miss (Skip)' : 'Mark Done';
     doneBtn.onclick = () => {
         updateStreak(dateStr, streakName, currentState === 'green' ? 'red' : 'green');
         popup.remove();
     };
+
     const removeBtn = document.createElement('button');
     removeBtn.textContent = currentState === 'none' ? 'Mark Miss' : 'Remove Mark';
     removeBtn.onclick = () => {
         updateStreak(dateStr, streakName, currentState === 'none' ? 'red' : 'none');
         popup.remove();
     };
+
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancel';
     cancelBtn.onclick = () => popup.remove();
-    content.appendChild(doneBtn);
-    content.appendChild(removeBtn);
-    content.appendChild(cancelBtn);
+
+    content.append(doneBtn, removeBtn, cancelBtn);
     popup.appendChild(content);
     document.body.appendChild(popup);
     popup.addEventListener('click', ({ target }) => {
@@ -299,25 +310,21 @@ function showStreakPopup(dateStr, streakName, currentState) {
     });
 }
 
-// Update Streak
+// ====================== Update Streak ======================
 function updateStreak(dateStr, streakName, state) {
     const tx = db.transaction(['streaks'], 'readwrite');
     const store = tx.objectStore('streaks');
     store.get(streakName).onsuccess = ({ target }) => {
         const record = target.result || { name: streakName, data: {} };
         const data = record.data;
-        if (state === 'none') {
-            delete data[dateStr];
-        } else {
-            data[dateStr] = state;
-        }
+        if (state === 'none') delete data[dateStr];
+        else data[dateStr] = state;
         store.put(record);
         tx.oncomplete = () => loadStreak();
-        tx.onerror = e => console.error('updateStreak error:', e);
     };
 }
 
-// Stats Calculation
+// ====================== Stats ======================
 function calculateStats(streakData) {
     const dates = Object.keys(streakData).sort();
     if (!dates.length) {
@@ -325,20 +332,20 @@ function calculateStats(streakData) {
         document.getElementById('longest-streak').textContent = 0;
         return;
     }
+
     const greenDates = dates
         .filter(d => streakData[d] === 'green')
         .map(d => new Date(d + 'T00:00:00'))
         .sort((a, b) => a - b);
+
     let longest = 0, temp = 0, prev = null;
     for (let dt of greenDates) {
-        if (prev && (dt - prev) / (1000 * 60 * 60 * 24) === 1) {
-            temp++;
-        } else {
-            temp = 1;
-        }
+        if (prev && (dt - prev) / (1000 * 60 * 60 * 24) === 1) temp++;
+        else temp = 1;
         longest = Math.max(longest, temp);
         prev = dt;
     }
+
     let current = 0;
     const lastGreen = greenDates[greenDates.length - 1];
     if (lastGreen) {
@@ -349,11 +356,12 @@ function calculateStats(streakData) {
             ptr.setDate(ptr.getDate() - 1);
         }
     }
+
     document.getElementById('current-streak').textContent = current;
     document.getElementById('longest-streak').textContent = longest;
 }
 
-// Clock & Quotes
+// ====================== Clock & Quote ======================
 function updateClock() {
     DOM.clock.textContent = new Date().toLocaleString();
     clockInterval = setTimeout(updateClock, 1000);
@@ -367,16 +375,11 @@ function showDefaultCalendar() {
     generateCalendar({}, null, false);
 }
 
-// UI Helper
+// ====================== UI Helper ======================
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
 }
 
-// Initialize
-window.addEventListener('load', () => {
-    initDB();
-    setTimeout(() => {
-        if (!db) showScreen('set-pin-screen');
-    }, 800);
-});
+// ====================== Initialize ======================
+window.addEventListener('load', initDB);
