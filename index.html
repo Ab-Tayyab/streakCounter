@@ -2,109 +2,109 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Streak Counter</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Streak Counter</title>
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/streakCounter/manifest.json">
-    <meta name="theme-color" content="#1e2a38">
-    <meta name="mobile-web-app-capable" content="yes">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/streakCounter/manifest.json">
+  <meta name="theme-color" content="#1e2a38">
+  <meta name="mobile-web-app-capable" content="yes">
 
-    <!-- iOS Support -->
-    <link rel="apple-touch-icon" href="/streakCounter/192.png">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Streak Counter">
+  <!-- iOS Support -->
+  <link rel="apple-touch-icon" href="/streakCounter/192.png">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Streak Counter">
 
-    <!-- Fonts and Styles -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <!-- Fonts and Styles -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- SheetJS for Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 
-
 <body>
-    <div class="app-container">
-        <!-- PIN Screen -->
-        <div id="pin-screen" class="screen active">
-            <h1>Enter PIN</h1>
-            <input type="password" id="pin-input" placeholder="4-digit PIN" maxlength="4">
-            <button onclick="verifyPIN()">Enter</button>
-            <button onclick="showEditPIN()">Edit PIN</button>
-        </div>
-
-        <!-- Set PIN Screen (First Time) -->
-        <div id="set-pin-screen" class="screen">
-            <h1>Set PIN</h1>
-            <input type="password" id="new-pin" placeholder="4-digit PIN" maxlength="4">
-            <button onclick="setPIN()">Save</button>
-        </div>
-
-        <!-- Edit PIN Screen -->
-        <div id="edit-pin-screen" class="screen">
-            <h1>Edit PIN</h1>
-            <input type="password" id="old-pin" placeholder="Old PIN" maxlength="4">
-            <button onclick="verifyOldPIN()">Verify Old PIN</button>
-        </div>
-
-        <!-- New PIN Screen -->
-        <div id="new-pin-screen" class="screen">
-            <h1>Enter New PIN</h1>
-            <input type="password" id="new-edit-pin" placeholder="New PIN" maxlength="4">
-            <button onclick="updatePIN()">Update</button>
-        </div>
-
-        <!-- Dashboard Screen -->
-        <div id="dashboard-screen" class="screen">
-            <h1>Streak Counter</h1>
-            <div id="quote"></div>
-            <div id="clock"></div>
-            <select id="streak-select" onchange="loadStreak()">
-                <option value="">Select Streak</option>
-            </select>
-            <button onclick="addNewStreak()">Add New Streak</button>
-            <div class="calendar" id="calendar"></div>
-            <div id="streak-stats" class="stats hidden">
-                <div class="stats-box">
-                    <p>Current Streak</p>
-                    <span id="current-streak">0</span>
-                </div>
-                <div class="stats-box">
-                    <p>Longest Streak</p>
-                    <span id="longest-streak">0</span>
-                </div>
-            </div>
-            <!-- Logout Button -->
-            <button id="logout-btn" onclick="logout()">Logout</button>
-
-
-        </div>
+  <div class="app-container">
+    <!-- ================= PIN Screens ================= -->
+    <div id="pin-screen" class="screen active">
+      <h1>Enter PIN</h1>
+      <input type="password" id="pin-input" placeholder="4-digit PIN" maxlength="4">
+      <button onclick="verifyPIN()">Enter</button>
+      <button onclick="showEditPIN()">Edit PIN</button>
     </div>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/streakCounter/service-worker.js')
-                .then(reg => {
-                    if (reg.waiting) {
-                        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-                    }
 
-                    reg.addEventListener('updatefound', () => {
-                        const newWorker = reg.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                console.log('🔄 New update found — reloading...');
-                                window.location.reload();
-                            }
-                        });
-                    });
-                });
-        }
-    </script>
+    <div id="set-pin-screen" class="screen">
+      <h1>Set PIN</h1>
+      <input type="password" id="new-pin" placeholder="4-digit PIN" maxlength="4">
+      <button onclick="setPIN()">Save</button>
+    </div>
 
+    <div id="edit-pin-screen" class="screen">
+      <h1>Edit PIN</h1>
+      <input type="password" id="old-pin" placeholder="Old PIN" maxlength="4">
+      <button onclick="verifyOldPIN()">Verify Old PIN</button>
+    </div>
 
+    <div id="new-pin-screen" class="screen">
+      <h1>Enter New PIN</h1>
+      <input type="password" id="new-edit-pin" placeholder="New PIN" maxlength="4">
+      <button onclick="updatePIN()">Update</button>
+    </div>
 
+    <!-- ================= Dashboard Screen ================= -->
+    <div id="dashboard-screen" class="screen">
+      <h1>Streak Counter</h1>
 
+      <div id="quote"></div>
+      <div id="clock"></div>
 
-    <script src="script.js"></script>
+      <select id="streak-select" onchange="loadStreak()">
+        <option value="">Select Streak</option>
+      </select>
+      <button onclick="addNewStreak()">Add New Streak</button>
+
+      <div class="calendar" id="calendar"></div>
+
+      <div id="streak-stats" class="stats hidden">
+        <div class="stats-box">
+          <p>Current Streak</p>
+          <span id="current-streak">0</span>
+        </div>
+        <div class="stats-box">
+          <p>Longest Streak</p>
+          <span id="longest-streak">0</span>
+        </div>
+      </div>
+
+      <!-- Import / Export / Logout Buttons -->
+      <div class="data-buttons" id="dashboard-buttons">
+        <button onclick="exportDataExcel()">Export (Excel)</button>
+        <input type="file" id="importFile" accept=".xlsx" style="display:none" onchange="importData(event)">
+        <button onclick="document.getElementById('importFile').click()">Import Data</button>
+        <button id="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Service Worker ================= -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/streakCounter/service-worker.js')
+        .then(reg => {
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller)
+                window.location.reload();
+            });
+          });
+        });
+    }
+  </script>
+
+  <script src="script.js"></script>
 </body>
 
 </html>

@@ -219,12 +219,17 @@ function deleteCurrentStreak() {
     };
 }
 
+// ====================== Load Streak ======================
 function loadStreak() {
     const streakName = DOM.streakSelect.value;
+    const dashboardButtons = document.getElementById('dashboard-buttons');
 
     if (streakName) {
+        // Hide dashboard buttons when viewing a specific streak
+        dashboardButtons.style.display = 'none';
         DOM.streakStats.classList.remove('hidden');
         DOM.quote.classList.add('hidden');
+
         const tx = db.transaction(['streaks'], 'readonly');
         const store = tx.objectStore('streaks');
         store.get(streakName).onsuccess = ({ target }) => {
@@ -233,7 +238,8 @@ function loadStreak() {
             calculateStats(streakData);
         };
     } else {
-        // Reset everything when "None" is selected
+        // Show buttons only on the main dashboard
+        dashboardButtons.style.display = 'flex';
         DOM.streakStats.classList.add('hidden');
         DOM.quote.classList.remove('hidden');
         showQuote();
@@ -242,6 +248,21 @@ function loadStreak() {
         document.getElementById('longest-streak').textContent = 0;
     }
 }
+
+// ====================== Show Screen ======================
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+
+    const dashboardButtons = document.getElementById('dashboard-buttons');
+    // Only show buttons on main dashboard (not pin or set pin screens)
+    if (id === 'dashboard-screen' && !DOM.streakSelect.value) {
+        dashboardButtons.style.display = 'flex';
+    } else {
+        dashboardButtons.style.display = 'none';
+    }
+}
+
 
 // ====================== Calendar ======================
 function generateCalendar(streakData = {}, streakName = null, interactive = false) {
@@ -383,3 +404,88 @@ function showScreen(screenId) {
 
 // ====================== Initialize ======================
 window.addEventListener('load', initDB);
+
+// ====================== Import / Export Data (Excel Only) ======================
+
+// -------- EXPORT TO EXCEL --------
+function exportDataExcel() {
+    const tx = db.transaction(['streaks'], 'readonly');
+    const store = tx.objectStore('streaks');
+    const allData = [];
+
+    store.openCursor().onsuccess = ({ target }) => {
+        const cursor = target.result;
+        if (cursor) {
+            allData.push({ name: cursor.key, data: cursor.value.data });
+            cursor.continue();
+        } else {
+            if (!allData.length) return alert("No streaks found to export.");
+
+            const sheetData = [["Streak Name", "Date", "Status"]];
+            allData.forEach(streak => {
+                const { name, data } = streak;
+                Object.entries(data).forEach(([date, state]) => {
+                    sheetData.push([name, date, state]);
+                });
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
+            XLSX.utils.book_append_sheet(wb, ws, "Streaks");
+            XLSX.writeFile(wb, "streak_data.xlsx");
+        }
+    };
+}
+
+// -------- IMPORT FROM EXCEL --------
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    const fileExt = file.name.split(".").pop().toLowerCase();
+
+    if (fileExt !== "xlsx") {
+        alert("Please upload a valid .xlsx file.");
+        return;
+    }
+
+    reader.onload = (e) => {
+        const workbook = XLSX.read(e.target.result, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+        const rows = sheet.slice(1); // skip header row
+
+        if (!rows.length) return alert("No valid data found in Excel file.");
+
+        const tx = db.transaction(['streaks'], 'readwrite');
+        const store = tx.objectStore('streaks');
+        const grouped = {};
+
+        // Group by streak name
+        rows.forEach(([name, date, status]) => {
+            if (!name || !date || !status) return;
+            if (!grouped[name]) grouped[name] = {};
+            grouped[name][date] = status;
+        });
+
+        // Save to IndexedDB
+        for (const [name, data] of Object.entries(grouped)) {
+            store.get(name).onsuccess = ({ target }) => {
+                const existing = target.result || { name, data: {} };
+                existing.data = { ...existing.data, ...data };
+                store.put(existing);
+            };
+        }
+
+        tx.oncomplete = () => {
+            alert("Excel data imported successfully!");
+            loadStreaks();
+            if (DOM.streakSelect.value) loadStreak();
+            document.getElementById('importFile').value = "";
+        };
+    };
+
+    reader.readAsBinaryString(file);
+}
+

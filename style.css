@@ -1,9 +1,11 @@
-/* ===== Global Reset ===== */
+/* ===========================
+   🌙 Global Styles & Reset
+=========================== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
 body {
@@ -16,7 +18,9 @@ body {
   padding: 1rem;
 }
 
-/* ===== App Container ===== */
+/* ===========================
+   🧩 App Container
+=========================== */
 .app-container {
   max-width: 400px;
   width: 100%;
@@ -27,7 +31,9 @@ body {
   text-align: center;
 }
 
-/* ===== Headings ===== */
+/* ===========================
+   🏷️ Headings
+=========================== */
 h1 {
   font-size: 2rem;
   color: #4caf50;
@@ -35,34 +41,38 @@ h1 {
   letter-spacing: 1px;
 }
 
-/* ===== Screens ===== */
+/* ===========================
+   📱 Screens
+=========================== */
 .screen {
   display: none;
 }
+
 .active {
   display: block;
 }
 
-/* ===== Inputs & Buttons ===== */
+/* ===========================
+   🔘 Inputs & Buttons
+=========================== */
 input,
 select,
 button {
   width: 100%;
   padding: 0.75rem;
   margin-bottom: 1rem;
-  border: 1px solid #455a64;
   border-radius: 5px;
   font-size: 1rem;
   background: #37474f;
   color: #eceff1;
+  border: 1px solid #455a64;
 }
 
 button {
   background: #4caf50;
-  color: white;
   border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: 0.3s ease;
 }
 
 button:hover {
@@ -70,7 +80,9 @@ button:hover {
   transform: translateY(-1px);
 }
 
-/* ===== Dashboard Header (Clock & Date) ===== */
+/* ===========================
+   ⏰ Dashboard Header (Clock)
+=========================== */
 .dashboard-header {
   background: #263238;
   padding: 1rem;
@@ -84,25 +96,26 @@ button:hover {
   font-weight: 600;
   color: #81c784;
   margin-bottom: 0.3rem;
-  letter-spacing: 1px;
 }
 
 #today-date {
   font-size: 0.95rem;
-  opacity: 0.9;
   color: #cfd8dc;
+  opacity: 0.9;
 }
 
-/* ===== Streak Stats ===== */
+/* ===========================
+   📊 Streak Stats
+=========================== */
 .stats {
   background: #1b2834;
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   display: flex;
   justify-content: space-around;
   align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .stats-box {
@@ -112,7 +125,6 @@ button:hover {
 }
 
 .stats-box p {
-  margin: 0;
   font-size: 1rem;
   color: #b0bec5;
 }
@@ -124,7 +136,9 @@ button:hover {
   margin-top: 0.3rem;
 }
 
-/* ===== Calendar Grid ===== */
+/* ===========================
+   📅 Calendar Grid
+=========================== */
 .calendar {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
@@ -132,18 +146,17 @@ button:hover {
   margin-bottom: 1rem;
 }
 
-/* ===== Day Cells ===== */
 .day {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1;
   background: #455a64;
   border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s, transform 0.2s;
   color: #eceff1;
+  cursor: pointer;
+  transition: 0.3s;
 }
 
 .day:hover {
@@ -172,7 +185,9 @@ button:hover {
   opacity: 0.85;
 }
 
-/* ===== Quotes ===== */
+/* ===========================
+   💬 Quotes
+=========================== */
 #quote {
   font-size: 1.05rem;
   font-style: italic;
@@ -180,18 +195,12 @@ button:hover {
   color: #81c784;
 }
 
-/* ===== Hidden Elements ===== */
-.hidden {
-  display: none;
-}
-
-/* ===== Popup ===== */
+/* ===========================
+   ⚙️ Popup
+=========================== */
 .popup {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
@@ -212,7 +221,42 @@ button:hover {
   margin: 0.5rem;
 }
 
-/* ===== Mobile Optimization ===== */
+/* ===========================
+   🔘 Top Buttons
+=========================== */
+.top-buttons,
+.data-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.data-buttons button {
+  flex: 1 1 45%;
+  min-width: 130px;
+  background: #4caf50;
+}
+
+.data-buttons button:hover {
+  background: #43a047;
+}
+
+/* Logout */
+#logout-btn {
+  background: #ff5252;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+#logout-btn:hover {
+  background: #e53935;
+}
+
+/* ===========================
+   📱 Mobile Optimization
+=========================== */
 @media (max-width: 480px) {
   .app-container {
     padding: 1.2rem;
@@ -250,23 +294,4 @@ button:hover {
   .stats-box span {
     font-size: 1.3rem;
   }
-}
-/* ===== Logout Button ===== */
-#logout-btn {
-  width: 100%;
-  background: #ff5252;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 1rem;
-  transition: all 0.3s ease;
-}
-
-#logout-btn:hover {
-  background: #e53935;
-  transform: translateY(-1px);
 }
