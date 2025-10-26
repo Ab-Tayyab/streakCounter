@@ -1,5 +1,8 @@
-const CACHE_VERSION = 'v4';
-const CACHE_NAME = `streak-counter-${CACHE_VERSION}`;
+// ====================== AUTO-UPDATE SERVICE WORKER ======================
+const CACHE_PREFIX = 'streak-counter';
+const CACHE_VERSION = Date.now().toString(); // auto change on deploy
+const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
+
 const urlsToCache = [
   '/streakCounter/',
   '/streakCounter/index.html',
@@ -21,24 +24,33 @@ self.addEventListener('install', event => {
 // ========== ACTIVATE ==========
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(names =>
+    caches.keys().then(cacheNames =>
       Promise.all(
-        names.filter(name => name !== CACHE_NAME)
+        cacheNames
+          .filter(name => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
           .map(name => caches.delete(name))
       )
     ).then(() => self.clients.claim())
   );
+
+  // Notify all clients to reload
+  self.clients.matchAll({ type: 'window' }).then(clients => {
+    for (const client of clients) {
+      client.postMessage({ type: 'NEW_VERSION_AVAILABLE' });
+    }
+  });
 });
 
 // ========== FETCH ==========
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
+    caches.match(event.request).then(response =>
+      response || fetch(event.request)
+    )
   );
 });
 
-// ========== AUTO-UPDATE MESSAGE ==========
+// ========== MANUAL SKIP WAITING ==========
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();

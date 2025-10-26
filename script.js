@@ -404,9 +404,6 @@ function showScreen(screenId) {
 
 // ====================== Initialize ======================
 window.addEventListener('load', initDB);
-
-// ====================== Import / Export Data (Excel Only) ======================
-
 // -------- EXPORT TO EXCEL --------
 function exportDataExcel() {
     const tx = db.transaction(['streaks'], 'readonly');
@@ -432,7 +429,16 @@ function exportDataExcel() {
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
             XLSX.utils.book_append_sheet(wb, ws, "Streaks");
-            XLSX.writeFile(wb, "streak_data.xlsx");
+
+            // ✅ Safe blob-based export for GitHub Pages
+            const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+            const blob = new Blob([wbout], { type: "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "streak_data.xlsx";
+            a.click();
+            URL.revokeObjectURL(url);
         }
     };
 }
@@ -451,10 +457,10 @@ function importData(event) {
     }
 
     reader.onload = (e) => {
-        const workbook = XLSX.read(e.target.result, { type: "binary" });
+        const workbook = XLSX.read(e.target.result, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
-        const rows = sheet.slice(1); // skip header row
+        const rows = sheet.slice(1); // skip header
 
         if (!rows.length) return alert("No valid data found in Excel file.");
 
@@ -462,14 +468,12 @@ function importData(event) {
         const store = tx.objectStore('streaks');
         const grouped = {};
 
-        // Group by streak name
         rows.forEach(([name, date, status]) => {
             if (!name || !date || !status) return;
             if (!grouped[name]) grouped[name] = {};
             grouped[name][date] = status;
         });
 
-        // Save to IndexedDB
         for (const [name, data] of Object.entries(grouped)) {
             store.get(name).onsuccess = ({ target }) => {
                 const existing = target.result || { name, data: {} };
@@ -486,6 +490,6 @@ function importData(event) {
         };
     };
 
-    reader.readAsBinaryString(file);
+    // ✅ safer method for GitHub Pages
+    reader.readAsArrayBuffer(file);
 }
-
