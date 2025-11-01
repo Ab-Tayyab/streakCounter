@@ -295,26 +295,3 @@ button:hover {
     font-size: 1.3rem;
   }
 }
-.calendar-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 10px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.calendar-header button {
-  background: #2a3b4c;
-  border: none;
-  color: white;
-  padding: 5px 10px;
-  font-size: 1.2rem;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.calendar-header button:hover {
-  background: #3b5169;
-}

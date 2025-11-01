@@ -1,5 +1,28 @@
-// ====================== GLOBAL STATE ======================
-let currentYear, currentMonth;   // navigation state
+let db;
+const dbName = "StreakDB";
+const dbVersion = 1;
+let clockInterval;
+
+const quotes = [
+    "Keep pushing forward, one day at a time!",
+    "Every streak starts with a single step.",
+    "Consistency is the key to success!",
+    "Small actions daily lead to big results.",
+    "Stay committed, your streak will shine!"
+];
+
+// DOM Elements
+const DOM = {
+    pinInput: document.getElementById('pin-input'),
+    newPin: document.getElementById('new-pin'),
+    oldPin: document.getElementById('old-pin'),
+    newEditPin: document.getElementById('new-edit-pin'),
+    streakSelect: document.getElementById('streak-select'),
+    streakStats: document.getElementById('streak-stats'),
+    quote: document.getElementById('quote'),
+    clock: document.getElementById('clock'),
+    calendar: document.getElementById('calendar')
+};
 
 // ====================== IndexedDB Initialization ======================
 function initDB() {
@@ -18,7 +41,7 @@ function initDB() {
     request.onsuccess = ({ target }) => {
         db = target.result;
         console.log("IndexedDB initialized ✅");
-        checkLoginState();
+        checkLoginState(); // Call only after DB ready
     };
 
     request.onerror = ({ target }) => {
@@ -38,8 +61,7 @@ function checkLoginState() {
         if (isLoggedIn && hasPin) {
             showScreen('dashboard-screen');
             loadStreaks();
-            setCurrentMonthToToday();          // <-- initialise month
-            renderCalendar();                  // <-- render current month
+            showDefaultCalendar();
             showQuote();
             updateClock();
         } else if (hasPin) {
@@ -49,113 +71,6 @@ function checkLoginState() {
         }
     };
 }
-
-// -------------------------------------------------------------------
-//  NEW: Month navigation helpers
-// -------------------------------------------------------------------
-function setCurrentMonthToToday() {
-    const now = new Date();
-    currentYear  = now.getFullYear();
-    currentMonth = now.getMonth();               // 0-11
-    updateMonthHeader();
-}
-
-function changeMonth(delta) {
-    currentMonth += delta;
-    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-    if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
-    updateMonthHeader();
-    renderCalendar();                 // refresh calendar
-}
-
-function updateMonthHeader() {
-    const date = new Date(currentYear, currentMonth, 1);
-    const monthStr = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-    document.getElementById('calendar-month').textContent = monthStr;
-}
-
-// -------------------------------------------------------------------
-//  NEW: Centralised calendar renderer (replaces generateCalendar)
-// -------------------------------------------------------------------
-function renderCalendar(streakData = {}, streakName = null, interactive = false) {
-    const calendar = DOM.calendar;
-    calendar.innerHTML = '';
-
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const firstDay   = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun
-
-    const fragment = document.createDocumentFragment();
-
-    // optional leading empty cells (for alignment)
-    for (let i = 0; i < firstDay; i++) {
-        const empty = document.createElement('div');
-        empty.className = 'day empty';
-        fragment.appendChild(empty);
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const d = new Date(currentYear, currentMonth, day);
-        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-        const cell = document.createElement('div');
-        cell.classList.add('day');
-        cell.dataset.date = dateStr;
-        cell.innerHTML = `<div class="day-num">${day}</div><div class="day-label">${dayName}</div>`;
-
-        if (streakData[dateStr]) {
-            cell.classList.add(streakData[dateStr]);   // green / red
-        }
-
-        if (interactive && streakName) {
-            cell.addEventListener('click', () => showStreakPopup(dateStr, streakName, streakData[dateStr] || 'none'));
-        }
-
-        fragment.appendChild(cell);
-    }
-    calendar.appendChild(fragment);
-}
-
-// -------------------------------------------------------------------
-//  Replace every old generateCalendar() call with renderCalendar()
-// -------------------------------------------------------------------
-function showDefaultCalendar() {
-    renderCalendar({}, null, false);
-}
-
-// -------------------------------------------------------------------
-//  Updated loadStreak – uses the *current* month
-// -------------------------------------------------------------------
-function loadStreak() {
-    const streakName = DOM.streakSelect.value;
-    const dashboardButtons = document.getElementById('dashboard-buttons');
-
-    if (streakName) {
-        dashboardButtons.style.display = 'none';
-        DOM.streakStats.classList.remove('hidden');
-        DOM.quote.classList.add('hidden');
-
-        const tx = db.transaction(['streaks'], 'readonly');
-        const store = tx.objectStore('streaks');
-        store.get(streakName).onsuccess = ({ target }) => {
-            const streakData = target.result?.data || {};
-            renderCalendar(streakData, streakName, true);
-            calculateStats(streakData);
-        };
-    } else {
-        dashboardButtons.style.display = 'flex';
-        DOM.streakStats.classList.add('hidden');
-        DOM.quote.classList.remove('hidden');
-        showQuote();
-        renderCalendar({}, null, false);
-        document.getElementById('current-streak').textContent = 0;
-        document.getElementById('longest-streak').textContent = 0;
-    }
-}
-
-// -------------------------------------------------------------------
-//  The rest of the file stays **unchanged** (only minor call adjustments)
-// -------------------------------------------------------------------
 
 function validatePIN(pin) {
     return /^\d{4}$/.test(pin?.trim());
@@ -180,8 +95,7 @@ function verifyPIN() {
             localStorage.setItem('isLoggedIn', 'true');
             showScreen('dashboard-screen');
             loadStreaks();
-            setCurrentMonthToToday();
-            renderCalendar();
+            showDefaultCalendar();
             showQuote();
             updateClock();
         } else {
@@ -274,7 +188,7 @@ function addNewStreak() {
     const tx = db.transaction(['streaks'], 'readwrite');
     const store = tx.objectStore('streaks');
 
-    store.get(name).onsuccess = { target } => {
+    store.get(name).onsuccess = ({ target }) => {
         if (target.result) {
             alert('Streak with this name already exists!');
         } else {
@@ -298,12 +212,88 @@ function deleteCurrentStreak() {
     store.delete(streakName);
     tx.oncomplete = () => {
         loadStreaks();
-        setCurrentMonthToToday();
-        renderCalendar();
+        showDefaultCalendar();
         DOM.streakStats.classList.add('hidden');
         DOM.quote.classList.remove('hidden');
         showQuote();
     };
+}
+
+// ====================== Load Streak ======================
+function loadStreak() {
+    const streakName = DOM.streakSelect.value;
+    const dashboardButtons = document.getElementById('dashboard-buttons');
+
+    if (streakName) {
+        // Hide dashboard buttons when viewing a specific streak
+        dashboardButtons.style.display = 'none';
+        DOM.streakStats.classList.remove('hidden');
+        DOM.quote.classList.add('hidden');
+
+        const tx = db.transaction(['streaks'], 'readonly');
+        const store = tx.objectStore('streaks');
+        store.get(streakName).onsuccess = ({ target }) => {
+            const streakData = target.result?.data || {};
+            generateCalendar(streakData, streakName, true);
+            calculateStats(streakData);
+        };
+    } else {
+        // Show buttons only on the main dashboard
+        dashboardButtons.style.display = 'flex';
+        DOM.streakStats.classList.add('hidden');
+        DOM.quote.classList.remove('hidden');
+        showQuote();
+        generateCalendar({}, null, false);
+        document.getElementById('current-streak').textContent = 0;
+        document.getElementById('longest-streak').textContent = 0;
+    }
+}
+
+// ====================== Show Screen ======================
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+
+    const dashboardButtons = document.getElementById('dashboard-buttons');
+    // Only show buttons on main dashboard (not pin or set pin screens)
+    if (id === 'dashboard-screen' && !DOM.streakSelect.value) {
+        dashboardButtons.style.display = 'flex';
+    } else {
+        dashboardButtons.style.display = 'none';
+    }
+}
+
+
+// ====================== Calendar ======================
+function generateCalendar(streakData = {}, streakName = null, interactive = false) {
+    DOM.calendar.innerHTML = '';
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const fragment = document.createDocumentFragment();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(year, month, day);
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+        const cell = document.createElement('div');
+        cell.classList.add('day');
+        cell.dataset.date = dateStr;
+        cell.innerHTML = `<div class="day-num">${day}</div><div class="day-label">${dayName}</div>`;
+
+        if (streakData[dateStr]) {
+            cell.classList.add(streakData[dateStr]);
+        }
+
+        if (interactive && streakName) {
+            cell.addEventListener('click', () => showStreakPopup(dateStr, streakName, streakData[dateStr] || 'none'));
+        }
+
+        fragment.appendChild(cell);
+    }
+    DOM.calendar.appendChild(fragment);
 }
 
 // ====================== Streak Popup ======================
@@ -351,7 +341,7 @@ function updateStreak(dateStr, streakName, state) {
         if (state === 'none') delete data[dateStr];
         else data[dateStr] = state;
         store.put(record);
-        tx.oncomplete = () => loadStreak();   // reloads current month
+        tx.oncomplete = () => loadStreak();
     };
 }
 
@@ -402,20 +392,19 @@ function showQuote() {
     DOM.quote.textContent = quotes[Math.floor(Math.random() * quotes.length)];
 }
 
-// ====================== Show Screen ======================
-function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-
-    const dashboardButtons = document.getElementById('dashboard-buttons');
-    if (id === 'dashboard-screen' && !DOM.streakSelect.value) {
-        dashboardButtons.style.display = 'flex';
-    } else {
-        dashboardButtons.style.display = 'none';
-    }
+function showDefaultCalendar() {
+    generateCalendar({}, null, false);
 }
 
-// ====================== Export / Import (unchanged) ======================
+// ====================== UI Helper ======================
+function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+}
+
+// ====================== Initialize ======================
+window.addEventListener('load', initDB);
+// -------- EXPORT TO EXCEL --------
 function exportDataExcel() {
     const tx = db.transaction(['streaks'], 'readonly');
     const store = tx.objectStore('streaks');
@@ -441,6 +430,7 @@ function exportDataExcel() {
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
             XLSX.utils.book_append_sheet(wb, ws, "Streaks");
 
+            // ✅ Safe blob-based export for GitHub Pages
             const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
             const blob = new Blob([wbout], { type: "application/octet-stream" });
             const url = URL.createObjectURL(blob);
@@ -453,6 +443,7 @@ function exportDataExcel() {
     };
 }
 
+// -------- IMPORT FROM EXCEL --------
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -469,7 +460,7 @@ function importData(event) {
         const workbook = XLSX.read(e.target.result, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
-        const rows = sheet.slice(1);
+        const rows = sheet.slice(1); // skip header
 
         if (!rows.length) return alert("No valid data found in Excel file.");
 
@@ -499,8 +490,6 @@ function importData(event) {
         };
     };
 
+    // ✅ safer method for GitHub Pages
     reader.readAsArrayBuffer(file);
 }
-
-// ====================== Initialize ======================
-window.addEventListener('load', initDB);
