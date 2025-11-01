@@ -2,6 +2,7 @@ let db;
 const dbName = "StreakDB";
 const dbVersion = 1;
 let clockInterval;
+let currentMonthOffset = 0;
 
 const quotes = [
     "Keep pushing forward, one day at a time!",
@@ -41,7 +42,7 @@ function initDB() {
     request.onsuccess = ({ target }) => {
         db = target.result;
         console.log("IndexedDB initialized ✅");
-        checkLoginState(); // Call only after DB ready
+        checkLoginState();
     };
 
     request.onerror = ({ target }) => {
@@ -225,7 +226,6 @@ function loadStreak() {
     const dashboardButtons = document.getElementById('dashboard-buttons');
 
     if (streakName) {
-        // Hide dashboard buttons when viewing a specific streak
         dashboardButtons.style.display = 'none';
         DOM.streakStats.classList.remove('hidden');
         DOM.quote.classList.add('hidden');
@@ -238,7 +238,6 @@ function loadStreak() {
             calculateStats(streakData);
         };
     } else {
-        // Show buttons only on the main dashboard
         dashboardButtons.style.display = 'flex';
         DOM.streakStats.classList.add('hidden');
         DOM.quote.classList.remove('hidden');
@@ -255,7 +254,6 @@ function showScreen(id) {
     document.getElementById(id).classList.add('active');
 
     const dashboardButtons = document.getElementById('dashboard-buttons');
-    // Only show buttons on main dashboard (not pin or set pin screens)
     if (id === 'dashboard-screen' && !DOM.streakSelect.value) {
         dashboardButtons.style.display = 'flex';
     } else {
@@ -263,13 +261,18 @@ function showScreen(id) {
     }
 }
 
-
-// ====================== Calendar ======================
+// ====================== Calendar with Navigation ======================
 function generateCalendar(streakData = {}, streakName = null, interactive = false) {
     DOM.calendar.innerHTML = '';
+
     const now = new Date();
+    now.setMonth(now.getMonth() + currentMonthOffset);
     const year = now.getFullYear();
     const month = now.getMonth();
+
+    const monthName = now.toLocaleString('default', { month: 'long' });
+    document.getElementById('calendar-month').textContent = `${monthName} ${year}`;
+
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const fragment = document.createDocumentFragment();
 
@@ -294,6 +297,23 @@ function generateCalendar(streakData = {}, streakName = null, interactive = fals
         fragment.appendChild(cell);
     }
     DOM.calendar.appendChild(fragment);
+}
+
+function changeMonth(offset) {
+    currentMonthOffset += offset;
+    const streakName = DOM.streakSelect.value;
+
+    if (streakName) {
+        const tx = db.transaction(['streaks'], 'readonly');
+        const store = tx.objectStore('streaks');
+        store.get(streakName).onsuccess = ({ target }) => {
+            const streakData = target.result?.data || {};
+            generateCalendar(streakData, streakName, true);
+            calculateStats(streakData);
+        };
+    } else {
+        generateCalendar({}, null, false);
+    }
 }
 
 // ====================== Streak Popup ======================
@@ -396,15 +416,10 @@ function showDefaultCalendar() {
     generateCalendar({}, null, false);
 }
 
-// ====================== UI Helper ======================
-function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
-}
-
 // ====================== Initialize ======================
 window.addEventListener('load', initDB);
-// -------- EXPORT TO EXCEL --------
+
+// -------- EXPORT / IMPORT --------
 function exportDataExcel() {
     const tx = db.transaction(['streaks'], 'readonly');
     const store = tx.objectStore('streaks');
@@ -430,7 +445,6 @@ function exportDataExcel() {
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
             XLSX.utils.book_append_sheet(wb, ws, "Streaks");
 
-            // ✅ Safe blob-based export for GitHub Pages
             const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
             const blob = new Blob([wbout], { type: "application/octet-stream" });
             const url = URL.createObjectURL(blob);
@@ -443,7 +457,6 @@ function exportDataExcel() {
     };
 }
 
-// -------- IMPORT FROM EXCEL --------
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -460,7 +473,7 @@ function importData(event) {
         const workbook = XLSX.read(e.target.result, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
-        const rows = sheet.slice(1); // skip header
+        const rows = sheet.slice(1);
 
         if (!rows.length) return alert("No valid data found in Excel file.");
 
@@ -490,6 +503,5 @@ function importData(event) {
         };
     };
 
-    // ✅ safer method for GitHub Pages
     reader.readAsArrayBuffer(file);
 }
