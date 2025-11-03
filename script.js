@@ -2,6 +2,8 @@ let db;
 const dbName = "StreakDB";
 const dbVersion = 1;
 let clockInterval;
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
 
 const quotes = [
     "Keep pushing forward, one day at a time!",
@@ -11,7 +13,6 @@ const quotes = [
     "Stay committed, your streak will shine!"
 ];
 
-// DOM Elements
 const DOM = {
     pinInput: document.getElementById('pin-input'),
     newPin: document.getElementById('new-pin'),
@@ -24,10 +25,8 @@ const DOM = {
     calendar: document.getElementById('calendar')
 };
 
-// ====================== IndexedDB Initialization ======================
 function initDB() {
     const request = indexedDB.open(dbName, dbVersion);
-
     request.onupgradeneeded = ({ target }) => {
         db = target.result;
         if (!db.objectStoreNames.contains('pin')) {
@@ -37,25 +36,20 @@ function initDB() {
             db.createObjectStore('streaks', { keyPath: 'name' });
         }
     };
-
     request.onsuccess = ({ target }) => {
         db = target.result;
-        console.log("IndexedDB initialized ✅");
-        checkLoginState(); // Call only after DB ready
+        checkLoginState();
     };
-
     request.onerror = ({ target }) => {
         console.error('IndexedDB error:', target.errorCode);
         alert("Database initialization failed. Please reload the page.");
     };
 }
 
-// ====================== Login Handling ======================
 function checkLoginState() {
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const tx = db.transaction(['pin'], 'readonly');
     const store = tx.objectStore('pin');
-
     store.get(1).onsuccess = ({ target }) => {
         const hasPin = !!target.result;
         if (isLoggedIn && hasPin) {
@@ -76,18 +70,10 @@ function validatePIN(pin) {
     return /^\d{4}$/.test(pin?.trim());
 }
 
-function checkPIN() {
-    const tx = db.transaction(['pin'], 'readonly');
-    const store = tx.objectStore('pin');
-    store.get(1).onsuccess = ({ target }) => {
-        showScreen(target.result ? 'pin-screen' : 'set-pin-screen');
-    };
-}
 
 function verifyPIN() {
     const pin = DOM.pinInput.value;
     if (!validatePIN(pin)) return alert('PIN must be a 4-digit number');
-
     const tx = db.transaction(['pin'], 'readonly');
     const store = tx.objectStore('pin');
     store.get(1).onsuccess = ({ target }) => {
@@ -108,11 +94,9 @@ function verifyPIN() {
 function setPIN() {
     const pin = DOM.newPin.value;
     if (!validatePIN(pin)) return alert('PIN must be a 4-digit number');
-
     const tx = db.transaction(['pin'], 'readwrite');
     const store = tx.objectStore('pin');
     store.put({ id: 1, value: pin });
-
     tx.oncomplete = () => {
         alert('PIN set successfully');
         showScreen('pin-screen');
@@ -123,7 +107,6 @@ function setPIN() {
 function verifyOldPIN() {
     const oldPin = DOM.oldPin.value;
     if (!validatePIN(oldPin)) return alert('PIN must be a 4-digit number');
-
     const tx = db.transaction(['pin'], 'readonly');
     const store = tx.objectStore('pin');
     store.get(1).onsuccess = ({ target }) => {
@@ -144,11 +127,9 @@ function showEditPIN() {
 function updatePIN() {
     const newPin = DOM.newEditPin.value;
     if (!validatePIN(newPin)) return alert('PIN must be a 4-digit number');
-
     const tx = db.transaction(['pin'], 'readwrite');
     const store = tx.objectStore('pin');
     store.put({ id: 1, value: newPin });
-
     tx.oncomplete = () => {
         alert('PIN updated successfully');
         showScreen('pin-screen');
@@ -163,12 +144,10 @@ function logout() {
     DOM.pinInput.value = '';
 }
 
-// ====================== Streak Management ======================
 function loadStreaks() {
     DOM.streakSelect.innerHTML = '<option value="">Select Streak</option>';
     const tx = db.transaction(['streaks'], 'readonly');
     const store = tx.objectStore('streaks');
-
     store.openCursor().onsuccess = ({ target }) => {
         const cursor = target.result;
         if (cursor) {
@@ -184,10 +163,8 @@ function loadStreaks() {
 function addNewStreak() {
     const name = prompt('Enter streak name:')?.trim();
     if (!name) return;
-
     const tx = db.transaction(['streaks'], 'readwrite');
     const store = tx.objectStore('streaks');
-
     store.get(name).onsuccess = ({ target }) => {
         if (target.result) {
             alert('Streak with this name already exists!');
@@ -206,7 +183,6 @@ function deleteCurrentStreak() {
     const streakName = DOM.streakSelect.value;
     if (!streakName) return alert('Please select a streak to delete');
     if (!confirm(`Are you sure you want to delete "${streakName}"?`)) return;
-
     const tx = db.transaction(['streaks'], 'readwrite');
     const store = tx.objectStore('streaks');
     store.delete(streakName);
@@ -219,43 +195,35 @@ function deleteCurrentStreak() {
     };
 }
 
-// ====================== Load Streak ======================
 function loadStreak() {
     const streakName = DOM.streakSelect.value;
     const dashboardButtons = document.getElementById('dashboard-buttons');
-
     if (streakName) {
-        // Hide dashboard buttons when viewing a specific streak
         dashboardButtons.style.display = 'none';
         DOM.streakStats.classList.remove('hidden');
         DOM.quote.classList.add('hidden');
-
         const tx = db.transaction(['streaks'], 'readonly');
         const store = tx.objectStore('streaks');
         store.get(streakName).onsuccess = ({ target }) => {
             const streakData = target.result?.data || {};
-            generateCalendar(streakData, streakName, true);
+            generateCalendar(streakData, streakName, true, currentYear, currentMonth);
             calculateStats(streakData);
         };
     } else {
-        // Show buttons only on the main dashboard
         dashboardButtons.style.display = 'flex';
         DOM.streakStats.classList.add('hidden');
         DOM.quote.classList.remove('hidden');
         showQuote();
-        generateCalendar({}, null, false);
+        generateCalendar({}, null, false, currentYear, currentMonth);
         document.getElementById('current-streak').textContent = 0;
         document.getElementById('longest-streak').textContent = 0;
     }
 }
 
-// ====================== Show Screen ======================
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-
     const dashboardButtons = document.getElementById('dashboard-buttons');
-    // Only show buttons on main dashboard (not pin or set pin screens)
     if (id === 'dashboard-screen' && !DOM.streakSelect.value) {
         dashboardButtons.style.display = 'flex';
     } else {
@@ -263,21 +231,18 @@ function showScreen(id) {
     }
 }
 
-
-// ====================== Calendar ======================
-function generateCalendar(streakData = {}, streakName = null, interactive = false) {
+function generateCalendar(streakData = {}, streakName = null, interactive = false, year = currentYear, month = currentMonth) {
     DOM.calendar.innerHTML = '';
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const fragment = document.createDocumentFragment();
+    const monthName = new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
+    const label = document.getElementById('month-label');
+    if (label) label.textContent = monthName;
 
     for (let day = 1; day <= daysInMonth; day++) {
         const d = new Date(year, month, day);
         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
         const cell = document.createElement('div');
         cell.classList.add('day');
         cell.dataset.date = dateStr;
@@ -296,7 +261,30 @@ function generateCalendar(streakData = {}, streakName = null, interactive = fals
     DOM.calendar.appendChild(fragment);
 }
 
-// ====================== Streak Popup ======================
+function changeMonth(offset) {
+    currentMonth += offset;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    } else if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+
+    const streakName = DOM.streakSelect.value;
+    if (streakName) {
+        const tx = db.transaction(['streaks'], 'readonly');
+        const store = tx.objectStore('streaks');
+        store.get(streakName).onsuccess = ({ target }) => {
+            const streakData = target.result?.data || {};
+            generateCalendar(streakData, streakName, true, currentYear, currentMonth);
+            calculateStats(streakData);
+        };
+    } else {
+        generateCalendar({}, null, false, currentYear, currentMonth);
+    }
+}
+
 function showStreakPopup(dateStr, streakName, currentState) {
     document.querySelector('.popup')?.remove();
     const popup = document.createElement('div');
@@ -331,7 +319,6 @@ function showStreakPopup(dateStr, streakName, currentState) {
     });
 }
 
-// ====================== Update Streak ======================
 function updateStreak(dateStr, streakName, state) {
     const tx = db.transaction(['streaks'], 'readwrite');
     const store = tx.objectStore('streaks');
@@ -345,7 +332,6 @@ function updateStreak(dateStr, streakName, state) {
     };
 }
 
-// ====================== Stats ======================
 function calculateStats(streakData) {
     const dates = Object.keys(streakData).sort();
     if (!dates.length) {
@@ -382,7 +368,6 @@ function calculateStats(streakData) {
     document.getElementById('longest-streak').textContent = longest;
 }
 
-// ====================== Clock & Quote ======================
 function updateClock() {
     DOM.clock.textContent = new Date().toLocaleString();
     clockInterval = setTimeout(updateClock, 1000);
@@ -393,18 +378,8 @@ function showQuote() {
 }
 
 function showDefaultCalendar() {
-    generateCalendar({}, null, false);
+    generateCalendar({}, null, false, currentYear, currentMonth);
 }
-
-// ====================== UI Helper ======================
-function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
-}
-
-// ====================== Initialize ======================
-window.addEventListener('load', initDB);
-// -------- EXPORT TO EXCEL --------
 function exportDataExcel() {
     const tx = db.transaction(['streaks'], 'readonly');
     const store = tx.objectStore('streaks');
@@ -430,7 +405,6 @@ function exportDataExcel() {
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
             XLSX.utils.book_append_sheet(wb, ws, "Streaks");
 
-            // ✅ Safe blob-based export for GitHub Pages
             const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
             const blob = new Blob([wbout], { type: "application/octet-stream" });
             const url = URL.createObjectURL(blob);
@@ -442,8 +416,6 @@ function exportDataExcel() {
         }
     };
 }
-
-// -------- IMPORT FROM EXCEL --------
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -490,6 +462,6 @@ function importData(event) {
         };
     };
 
-    // ✅ safer method for GitHub Pages
     reader.readAsArrayBuffer(file);
 }
+window.addEventListener('load', initDB);

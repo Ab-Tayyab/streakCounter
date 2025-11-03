@@ -63,6 +63,13 @@
                 <option value="">Select Streak</option>
             </select>
             <button onclick="addNewStreak()">Add New Streak</button>
+            <button onclick="deleteCurrentStreak()">Delete Selected Streak</button>
+
+<div class="calendar-nav">
+  <button onclick="changeMonth(-1)">◀</button>
+  <span id="month-label"></span>
+  <button onclick="changeMonth(1)">▶</button>
+</div>
 
             <div class="calendar" id="calendar"></div>
 

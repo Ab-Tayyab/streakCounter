@@ -295,3 +295,28 @@ button:hover {
     font-size: 1.3rem;
   }
 }
+.calendar-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  background: #263238;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  color: #cfd8dc;
+  font-weight: 600;
+}
+
+.calendar-nav button {
+  background: transparent;
+  border: none;
+  color: #81c784;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.calendar-nav button:hover {
+  color: #a5d6a7;
+  transform: scale(1.1);
+}
